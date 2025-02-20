@@ -4,6 +4,54 @@ if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
     exit 1
 }
 
+# WiFi Setup Variables
+$wifiName = "Skylinks_ProShop"   # Replace with the actual WiFi SSID
+$wifiPassword = "1091ConcordAvenue"  # Replace with the actual WiFi password
+
+Write-Host "Setting up WiFi connection..."
+netsh wlan add profile filename="WiFiProfile.xml"
+
+# Create the WiFi profile XML content
+$wifiProfile = @"
+<?xml version="1.0"?>
+<WLANProfile xmlns="http://www.microsoft.com/networking/WLAN/profile/v1">
+    <name>$wifiName</name>
+    <SSIDConfig>
+        <SSID>
+            <name>$wifiName</name>
+        </SSID>
+    </SSIDConfig>
+    <connectionType>ESS</connectionType>
+    <connectionMode>auto</connectionMode>
+    <MSM>
+        <security>
+            <authEncryption>
+                <authentication>WPA2PSK</authentication>
+                <encryption>AES</encryption>
+                <useOneX>false</useOneX>
+            </authEncryption>
+            <sharedKey>
+                <keyType>passPhrase</keyType>
+                <protected>false</protected>
+                <keyMaterial>$wifiPassword</keyMaterial>
+            </sharedKey>
+        </security>
+    </MSM>
+</WLANProfile>
+"@
+
+# Save the WiFi profile XML file
+$wifiProfilePath = "$env:TEMP\WiFiProfile.xml"
+$wifiProfile | Set-Content -Path $wifiProfilePath -Encoding UTF8
+
+# Add the WiFi profile to the system
+netsh wlan add profile filename="$wifiProfilePath"
+
+# Connect to the WiFi
+netsh wlan connect name="$wifiName"
+
+Write-Host "WiFi setup complete!" -ForegroundColor Green
+
 # Install required applications
 $apps = @(
     "Google.Chrome",
