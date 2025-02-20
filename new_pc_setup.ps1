@@ -52,21 +52,23 @@ netsh wlan connect name="$wifiName"
 
 Write-Host "WiFi setup complete!" -ForegroundColor Green
 
-# Install required applications
+# Install required applications (System-wide installation)
 $apps = @(
     "Google.Chrome",
     "Epson.SmartScan",
     "SlackTechnologies.Slack",
     "StarMicronics.StarPrinterUtility",
-    "NerdFonts.NerdFonts"
+    "NerdFonts.NerdFonts",
+    "Git.Git",
+    "Microsoft.PowerShell"
 )
 
 foreach ($app in $apps) {
-    Write-Host "Installing $app..."
-    Start-Process -NoNewWindow -Wait -FilePath "winget" -ArgumentList "install --id=$app --silent --accept-source-agreements --accept-package-agreements"
+    Write-Host "Installing $app system-wide..."
+    Start-Process -NoNewWindow -Wait -FilePath "winget" -ArgumentList "install --id=$app --scope machine --silent --accept-source-agreements --accept-package-agreements"
 }
 
-Write-Host "All applications installed successfully!" -ForegroundColor Green
+Write-Host "All applications installed for all users successfully!" -ForegroundColor Green
 
 # Configure power settings: Never turn off display and never go to sleep
 Write-Host "Configuring power settings..."
