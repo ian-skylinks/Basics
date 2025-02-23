@@ -1,82 +1,101 @@
-# Ensure Winget is available
-if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
-    Write-Host "Winget is not installed or not in the PATH. Please install Winget first." -ForegroundColor Red
-    exit 1
+# basic_needs_script.ps1 - Configures a new PC by installing applications, setting up WiFi, adjusting power settings, removing bloatware, and logging progress.
+
+# Define log file
+$LogFile = "C:\SetupLog.txt"
+Function Log {
+    Param ([string]$Message)
+    "$((Get-Date).ToString("yyyy-MM-dd HH:mm:ss")) - $Message" | Out-File -Append -FilePath $LogFile
 }
 
-# WiFi Setup Variables
-$wifiName = "Skylinks_ProShop"   # Replace with the actual WiFi SSID
-$wifiPassword = "1091ConcordAvenue"  # Replace with the actual WiFi password
+# Ensure script is running as administrator
+If (-Not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole("Administrator")) {
+    Log "Script must be run as Administrator. Exiting."
+    Write-Host "Please run this script as Administrator." -ForegroundColor Red
+    Exit 1
+}
 
-Write-Host "Setting up WiFi connection..."
-netsh wlan add profile filename="WiFiProfile.xml"
+Log "Starting system setup..."
 
-# Create the WiFi profile XML content
-$wifiProfile = @"
-<?xml version="1.0"?>
-<WLANProfile xmlns="http://www.microsoft.com/networking/WLAN/profile/v1">
-    <name>$wifiName</name>
-    <SSIDConfig>
-        <SSID>
-            <name>$wifiName</name>
-        </SSID>
-    </SSIDConfig>
-    <connectionType>ESS</connectionType>
-    <connectionMode>auto</connectionMode>
-    <MSM>
-        <security>
-            <authEncryption>
-                <authentication>WPA2PSK</authentication>
-                <encryption>AES</encryption>
-                <useOneX>false</useOneX>
-            </authEncryption>
-            <sharedKey>
-                <keyType>passPhrase</keyType>
-                <protected>false</protected>
-                <keyMaterial>$wifiPassword</keyMaterial>
-            </sharedKey>
-        </security>
-    </MSM>
-</WLANProfile>
-"@
+# Set power settings: Never turn off display and never sleep
+Log "Configuring power settings..."
+powercfg /change monitor-timeout-ac 0
+powercfg /change monitor-timeout-dc 0
+powercfg /change standby-timeout-ac 0
+powercfg /change standby-timeout-dc 0
 
-# Save the WiFi profile XML file
-$wifiProfilePath = "$env:TEMP\WiFiProfile.xml"
-$wifiProfile | Set-Content -Path $wifiProfilePath -Encoding UTF8
+# Define WiFi credentials
+$WiFiName = "YourWiFiSSID"
+$WiFiPassword = "YourWiFiPassword"
+Log "Setting up WiFi for SSID: $WiFiName"
+netsh wlan add profile filename="C:\wifi-profile.xml" user=all
+netsh wlan connect name="$WiFiName"
 
-# Add the WiFi profile to the system
-netsh wlan add profile filename="$wifiProfilePath"
-
-# Connect to the WiFi
-netsh wlan connect name="$wifiName"
-
-Write-Host "WiFi setup complete!" -ForegroundColor Green
-
-# Install required applications (System-wide installation)
-$apps = @(
+# Install applications for all users
+Log "Installing required applications..."
+$Apps = @(
     "Google.Chrome",
-    "Epson.SmartScan",
     "SlackTechnologies.Slack",
-    "StarMicronics.StarPrinterUtility",
-    "NerdFonts.NerdFonts",
     "Git.Git",
-    "Microsoft.PowerShell"
+    "Microsoft.PowerShell",
+    "StarMicronics.StarPrinterUtility",
+    "Epson.ScanSmart"
 )
 
-foreach ($app in $apps) {
-    Write-Host "Installing $app system-wide..."
-    Start-Process -NoNewWindow -Wait -FilePath "winget" -ArgumentList "install --id=$app --scope machine --silent --accept-source-agreements --accept-package-agreements"
+foreach ($App in $Apps) {
+    Log "Installing $App..."
+    Start-Process -NoNewWindow -Wait -FilePath "winget" -ArgumentList "install --id=$App --scope machine --silent --accept-source-agreements --accept-package-agreements" -ErrorAction SilentlyContinue
 }
 
-Write-Host "All applications installed for all users successfully!" -ForegroundColor Green
+# Remove Windows Bloatware
+Log "Removing Windows bloatware..."
+$bloatware = @(
+    "Microsoft.3DBuilder",
+    "Microsoft.BingWeather",
+    "Microsoft.GetHelp",
+    "Microsoft.Getstarted",
+    "Microsoft.MicrosoftSolitaireCollection",
+    "Microsoft.MicrosoftOfficeHub",
+    "Microsoft.MixedReality.Portal",
+    "Microsoft.OneConnect",
+    "Microsoft.People",
+    "Microsoft.Print3D",
+    "Microsoft.SkypeApp",
+    "Microsoft.StorePurchaseApp",
+    "Microsoft.Todos",
+    "Microsoft.WindowsAlarms",
+    "Microsoft.WindowsCamera",
+    "Microsoft.WindowsFeedbackHub",
+    "Microsoft.WindowsMaps",
+    "Microsoft.Xbox.TCUI",
+    "Microsoft.XboxApp",
+    "Microsoft.XboxGameOverlay",
+    "Microsoft.XboxGamingOverlay",
+    "Microsoft.XboxIdentityProvider",
+    "Microsoft.XboxSpeechToTextOverlay",
+    "Microsoft.YourPhone",
+    "Microsoft.ZuneMusic",
+    "Microsoft.ZuneVideo"
+)
 
-# Configure power settings: Never turn off display and never go to sleep
-Write-Host "Configuring power settings..."
-powercfg /change monitor-timeout-ac 0  # Never turn off screen on AC power
-powercfg /change monitor-timeout-dc 0  # Never turn off screen on battery
-powercfg /change standby-timeout-ac 0  # Never go to sleep on AC power
-powercfg /change standby-timeout-dc 0  # Never go to sleep on battery
+foreach ($app in $bloatware) {
+    Log "Removing $app..."
+    Get-AppxPackage -AllUsers -Name $app | Remove-AppxPackage -ErrorAction SilentlyContinue
+    Get-AppxProvisionedPackage -Online | Where-Object DisplayName -like "*$app*" | Remove-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue
+}
 
-Write-Host "Power settings configured successfully!" -ForegroundColor Green
+# Download additional installation files
+$Downloads = @(
+    "https://starmicronics.com/support/products/tsp100iv-support-page/?srsltid=AfmBOoq3efraZZWdwC8H0bR5IU_Oou5l13YVuepVWSRvNcw2iuDjtpk6#"
+)
 
-Write-Host "Setup complete! Restart the computer for all changes to take effect." -ForegroundColor Cyan
+$DownloadPath = "C:\Downloads"
+If (!(Test-Path $DownloadPath)) { New-Item -ItemType Directory -Path $DownloadPath | Out-Null }
+
+foreach ($URL in $Downloads) {
+    $FileName = $URL.Split("/")[-1]
+    $FilePath = "$DownloadPath\$FileName"
+    Log "Downloading $URL to $FilePath..."
+    Invoke-WebRequest -Uri $URL -OutFile $FilePath -ErrorAction SilentlyContinue
+}
+
+Log "Setup complete!"
