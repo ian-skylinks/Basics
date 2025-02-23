@@ -7,11 +7,11 @@ Function Log {
     "$((Get-Date).ToString("yyyy-MM-dd HH:mm:ss")) - $Message" | Out-File -Append -FilePath $LogFile
 }
 
-# Ensure script is running as administrator
+# Ensure script runs as Administrator
 If (-Not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole("Administrator")) {
-    Log "Script must be run as Administrator. Exiting."
-    Write-Host "Please run this script as Administrator." -ForegroundColor Red
-    Exit 1
+    Log "Re-launching script with admin rights..."
+    Start-Process PowerShell -ArgumentList "-ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
+    Exit
 }
 
 Log "Starting system setup..."
