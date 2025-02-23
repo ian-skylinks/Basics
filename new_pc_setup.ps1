@@ -1,10 +1,10 @@
 # basic_needs_script.ps1 - Configures a new PC by installing applications, setting up WiFi, adjusting power settings, and removing bloatware.
 
 # Ensure script runs as Administrator
-If (-Not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole("Administrator")) {
-    Start-Process PowerShell -ArgumentList "-ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
-    Exit
-}
+# If (-Not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole("Administrator")) {
+#     Start-Process PowerShell -ArgumentList "-ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
+#     Exit
+# }
 
 # Set power settings: Never turn off display and never sleep
 powercfg /change monitor-timeout-ac 0
